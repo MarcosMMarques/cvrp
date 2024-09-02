@@ -152,6 +152,7 @@ Problem::Problem(const int noc, const int demand_range, const int nov,
     for (int i = 1; i <= noc; ++i) {
       nodes_.emplace_back(ran(eng), ran(eng), i, ran_d(eng), false);
     }
+    // std::cout << "Tamanho dessa porra:" << nodes_.size() << "\n";
   } else if (distribution == "cluster") {
     int id = 1;
     int n_p_c = noc / n_clusters;

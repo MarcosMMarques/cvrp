@@ -1,85 +1,155 @@
-/**
- * @file main.cpp
- * @author vss2sn
- * @brief The main function that sets up the problem and runs the solution
- * algorithms
- */
-
 #include <iostream>
-
-#include "cvrp/genetic_algorithm.hpp"
-#include "cvrp/greedy.hpp"
+#include <vector>
 #include "cvrp/local_search_inter_intra.hpp"
-#include "cvrp/local_search_intra.hpp"
-#include "cvrp/simulated_annealing.hpp"
-#include "cvrp/tabu_search.hpp"
+#include "cvrp/utils.hpp"
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
-int main(int /* argc */, char** /* argv[] */) {
-  constexpr int noc = 10;
-  constexpr int demand_range = 4;
-  constexpr int nov = 8;
-  constexpr int capacity = 5;
-  constexpr int grid_range = 10;
+struct Point{
+    public:
+        int x_, y_, id_;
+
+    explicit Point(const int x = 0, const int y = 0, const int id = 0)
+        : x_(x), y_(y), id_(id) {}
+};
+
+void printPoints(const std::vector<Point>& points) {
+    std::cout << "Points:" << std::endl;
+    for (const auto& point : points) {
+        std::cout << "ID: " << point.id_ << ", x: " << point.x_ << ", y: " << point.y_ << std::endl;
+    }
+}
+
+void printNodes(const std::vector<Node>& nodes) {
+    std::cout << "Nodes:" << std::endl;
+    for (const auto& node : nodes) {
+        std::cout << "ID: " << node.id_ << ", x: " << node.x_ << ", y: " << node.y_
+                  << ", demand: " << node.demand_ << ", is_routed: " << (node.is_routed_ ? "Yes" : "No") << std::endl;
+    }
+}
+
+void printVehicles(const std::vector<Vehicle>& vehicles) {
+    std::cout << "Vehicles:" << std::endl;
+    for (const auto& vehicle : vehicles) {
+        std::cout << "Vehicle ID: " << vehicle.id_ << ", Load: " << vehicle.load_
+                  << ", Capacity: " << vehicle.capacity_ << ", Cost: " << vehicle.cost_ << std::endl;
+        std::cout << "Nodes visited: ";
+        for (const auto& node_id : vehicle.nodes_) {
+            std::cout << node_id << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void printDistanceMatrix(const std::vector<std::vector<double>>& distanceMatrix) {
+    std::cout << "Distance Matrix:" << std::endl;
+    for (const auto& row : distanceMatrix) {
+        // for (const auto& dist : row) {
+        //     std::cout << std::fixed << std::setprecision(2) << dist << "\t";
+        // }
+        // std::cout << std::endl;
+        std::cout << row.size() << std::endl;
+    }
+}
+
+
+int main() {
+  constexpr int noc = 31;
+  // constexpr int noc = 1250;
+  constexpr int demand_range = 24;
+  constexpr int nov = 5;
+  // constexpr int nov = 725;
+  constexpr int capacity = 100;
+  constexpr int grid_range = 100;
+  // constexpr int grid_range = 12500;
   Problem p(noc, demand_range, nov, capacity, grid_range, "uniform");
 
-  std::cout << "Greedy: " << '\n';
-  GreedySolution vrp_greedy(p.nodes_, p.vehicles_, p.distanceMatrix_);
-  vrp_greedy.Solve();
-  std::cout << '\n';
+    std::string filename = "./../input.txt";
+    std::ifstream file(filename);
+    std::string line;
+    int v_capacity = 0;
+    int node_q = 0;
+    std::vector<Point> points;
+    std::vector<Node> nodes;
+    std::vector<Vehicle> vehicles;
+    std::vector<std::vector<double>> distanceMatrix;
+    int num_vehicles = 0;
 
-  std::cout << "Local Search (Within each vehicle separately): " << '\n';
-  LocalSearchIntraSolution vrp_lsi(p);
-  vrp_lsi.Solve();
-  std::cout << '\n';
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            std::istringstream iss(line);
+            std::string keyword;
+            iss >> keyword;
 
-  std::cout << "Local Search (Within all vehicles): " << '\n';
-  LocalSearchInterIntraSolution vrp_lsii(p);
-  vrp_lsii.Solve();
-  std::cout << '\n';
+            if (keyword == "CAPACITY") {
+                iss.ignore(2);  // Ignorar ":"
+                iss >> v_capacity;
+            } else if (keyword == "DIMENSION") {
+                iss.ignore(2);
+                iss >> node_q;
+            } else if (keyword == "NODE_COORD_SECTION") {
+                for (int i = 0; i < node_q; ++i) {
+                    int id, x, y;
+                    file >> id >> x >> y;
+                    id--;
+                    Point point(x, y, id);
+                    points.push_back(point);
+                }
+            } else if (keyword == "DEMAND_SECTION") {
+                std::vector<Node> aux_nodes;
+                for (int i = 0; i < node_q; ++i) {
+                    int id, demand;
+                    file >> id >> demand;
+                    id--;
+                    Node new_node(points[id].x_, points[id].y_, points[id].id_, demand, false);
+                    aux_nodes.push_back(new_node);
+                }
+                nodes = aux_nodes;
+            } else if (keyword == "DEPOT_SECTION") {
+                // nodes[0].is_routed_ = true;
+            } else if (keyword == "EOF") {
+                break;
+            } else if(keyword == "NAME"){
+                num_vehicles = std::stoi(line.substr(line.find("-k") + 2));
+            }
+        }
+        file.close();
 
-  std::cout << "Tabu Search: " << '\n';
-  constexpr int n_tabu = 10;
-  constexpr int max_it = 500;
-  TabuSearchSolution vrp_ts(p, n_tabu, max_it);
-  vrp_ts.Solve();
-  std::cout << '\n';
+        // Inicializar veículos com base na capacidade lida e na dimensão
+        for (int i = 0; i < num_vehicles; ++i) {
+            Vehicle new_v(i, v_capacity, v_capacity);
+            new_v.nodes_.push_back(0);
+            vehicles.push_back(new_v);
+        }
 
-  std::cout << "Genetic Algorithm: " << '\n';
-  constexpr int n_chromosomes = 5;
-  constexpr int generations = 100;
-  GASolution vrp_ga(p, n_chromosomes, generations);
-  vrp_ga.Solve();
-  std::cout << '\n';
+        std::vector<double> tmp(nodes.size());
+        for (size_t i = 0; i < nodes.size(); ++i) {
+          distanceMatrix.push_back(tmp);
+        }
+        for (size_t i = 0; i < nodes.size(); ++i) {
+          for (size_t j = i; j < nodes.size(); ++j) {
+            distanceMatrix[i][j] = sqrt(pow((nodes[i].x_ - nodes[j].x_), 2) +
+                                         pow((nodes[i].y_ - nodes[j].y_), 2));
+            distanceMatrix[j][i] = distanceMatrix[i][j];
+          }
+        }
+    }
 
-  std::cout << "Simulated Annealing: " << '\n';
-  constexpr int stag_limit = 500000;
-  constexpr double init_temp = 5000;
-  constexpr double cooling_rate = 0.9999;
-  constexpr int n_reheats = 20;
-  SimulatedAnnealingSolution vrp_sa(p, stag_limit, init_temp, cooling_rate,
-                                    n_reheats);
-  vrp_sa.Solve();
-  std::cout << '\n';
-
-  // NOTE: The following are examples of how to create solutions by using the
-  // algorithms coded in this repository sequentially, effectively allowing
-  // the creation of hybrid algorithms/solutions.
-
-  // Example 1
-  // std::cout << "Hybrid Example 1: " << '\n';
-  // GreedySolution vrp_greedy_for_hybrid(p);
-  // vrp_greedy_for_hybrid.Solve();
-  // Solution s = vrp_greedy_for_hybrid; // Strip out solution from
-  // vrp_greedy_for_hybrid. LocalSearchInterIntraSolution
-  // vrp_lsii_for_hybrid(s); vrp_lsii_for_hybrid.Solve(); std::cout << '\n';
-
-  // Example 2
-  // std::cout << "Hybrid Example 2: " << '\n';
-  // GASolution vrp_ga_for_hybrid(p, 25, 500000);;
-  // vrp_ga_for_hybrid.Solve();
-  // Solution s = vrp_ga_for_hybrid; // Strip out solution from
-  // vrp_greedy_for_hybrid. LocalSearchInterIntraSolution
-  // vrp_lsii_for_hybrid(s); vrp_lsii_for_hybrid.Solve(); std::cout << '\n';
+    // std::cout << "Vehicle Capacity: " << v_capacity << std::endl;
+    // std::cout << "Number of Nodes: " << node_q << std::endl;
+    // printPoints(points);
+    // printNodes(nodes);
+    // printVehicles(vehicles);
+    std::cout << "Local Search (Within all vehicles): " << '\n';
+    LocalSearchInterIntraSolution vrp_lsii(nodes, vehicles, distanceMatrix);
+    LocalSearchInterIntraSolution vrp_lsii2(p);
+    vrp_lsii.Solve();
+    vrp_lsii2.Solve();
+    printDistanceMatrix(vrp_lsii2.GetDistanceMatrix());
+    printDistanceMatrix(distanceMatrix);
+    std::cout << '\n';
 
   return 0;
 }

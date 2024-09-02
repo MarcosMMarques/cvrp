@@ -223,6 +223,8 @@ class Solution {
 
   std::vector<Vehicle> GetVehicles() const { return vehicles_; }
 
+  std::vector<std::vector<double>> GetDistanceMatrix() const { return distanceMatrix_; }
+
  protected:
   std::vector<Node> nodes_;
   std::vector<Vehicle> vehicles_;
