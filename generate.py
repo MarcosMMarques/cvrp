@@ -1,6 +1,6 @@
 import random
 
-def generate_cvrp_instance(num_nodes, num_vehicles, capacity, max_coord=10000, max_demand=25, output_file="input_large_2.txt"):
+def generate_cvrp_instance(num_nodes, num_vehicles, capacity, max_coord=10000, max_demand=25, output_file="input_large_3.txt"):
     """
     Gera uma instância de CVRP com o número de nós, veículos e capacidade fornecidos.
 
@@ -47,4 +47,4 @@ def generate_cvrp_instance(num_nodes, num_vehicles, capacity, max_coord=10000, m
     print(f"CVRP instance with {num_nodes} nodes and {num_vehicles} vehicles generated in {output_file}.")
 
 # Example usage:
-generate_cvrp_instance(num_nodes=2500, num_vehicles=500, capacity=100, output_file="input_large_2.txt")
+generate_cvrp_instance(num_nodes=3000, num_vehicles=700, capacity=100, output_file="input_large_3.txt")
