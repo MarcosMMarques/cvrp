@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <chrono>
 
 struct Point{
     public:
@@ -56,17 +57,17 @@ void printDistanceMatrix(const std::vector<std::vector<double>>& distanceMatrix)
 
 
 int main() {
-  constexpr int noc = 31;
-  // constexpr int noc = 1250;
+  // constexpr int noc = 31;
+  constexpr int noc = 1249;
   constexpr int demand_range = 24;
-  constexpr int nov = 5;
-  // constexpr int nov = 725;
+  // constexpr int nov = 5;
+  constexpr int nov = 725;
   constexpr int capacity = 100;
-  constexpr int grid_range = 100;
-  // constexpr int grid_range = 12500;
+  // constexpr int grid_range = 100;
+  constexpr int grid_range = 12500;
   Problem p(noc, demand_range, nov, capacity, grid_range, "uniform");
 
-    std::string filename = "./../input.txt";
+    std::string filename = "./../input_large.txt";
     std::ifstream file(filename);
     std::string line;
     int v_capacity = 0;
@@ -144,11 +145,23 @@ int main() {
     // printVehicles(vehicles);
     std::cout << "Local Search (Within all vehicles): " << '\n';
     LocalSearchInterIntraSolution vrp_lsii(nodes, vehicles, distanceMatrix);
-    LocalSearchInterIntraSolution vrp_lsii2(p);
+    LocalSearchInterIntraSolution vrp_lsii2(nodes, vehicles, distanceMatrix);
+    // LocalSearchInterIntraSolution vrp_lsii2(p);
+    auto start = std::chrono::high_resolution_clock::now();
     vrp_lsii.Solve();
-    vrp_lsii2.Solve();
-    printDistanceMatrix(vrp_lsii2.GetDistanceMatrix());
-    printDistanceMatrix(distanceMatrix);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
+    vrp_lsii2.SolveSequential();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl;
+
+    // vrp_lsii2.Solve();
+    // printDistanceMatrix(vrp_lsii2.GetDistanceMatrix());
+    // printDistanceMatrix(distanceMatrix);
     std::cout << '\n';
 
   return 0;

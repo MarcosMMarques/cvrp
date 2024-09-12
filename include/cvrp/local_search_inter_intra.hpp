@@ -52,6 +52,7 @@ class LocalSearchInterIntraSolution : public Solution {
    * Prints cost of best solution, and its validity.
    */
   void Solve() override;
+  void SolveSequential();
 };
 
 #endif  // LSII_HPP

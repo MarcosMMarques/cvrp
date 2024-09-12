@@ -13,6 +13,7 @@
 #include <random>
 #include <tuple>
 #include <utility>
+#include <omp.h>
 
 std::ostream &operator<<(std::ostream &os, const Node &node) {
   os << "Node Status" << '\n';
@@ -25,6 +26,15 @@ std::ostream &operator<<(std::ostream &os, const Node &node) {
 }
 
 void Vehicle::CalculateCost(
+    const std::vector<std::vector<double>> &distanceMatrix) {
+  cost_ = 0;
+    #pragma omp parallel for reduction(+:cost_)
+    for (size_t i = 0; i < nodes_.size() - 1; i++) {
+      cost_ += distanceMatrix[nodes_[i]][nodes_[i + 1]];
+    }
+}
+
+void Vehicle::CalculateCostSequential(
     const std::vector<std::vector<double>> &distanceMatrix) {
   cost_ = 0;
   for (size_t i = 0; i < nodes_.size() - 1; i++) {
@@ -112,6 +122,47 @@ std::tuple<bool, Node> Solution::find_closest(const Vehicle &v) const {
 }
 
 bool Solution::CheckSolutionValid() const {
+  std::vector<bool> check_nodes(nodes_.size(), false);
+  check_nodes[0] = true;
+  bool valid = true;  // Variável para armazenar se a solução é válida
+
+  #pragma omp parallel
+  {
+    // Vetor local para cada thread
+    std::vector<bool> local_check_nodes(nodes_.size(), false);
+    local_check_nodes[0] = true;
+    bool local_valid = true;
+
+    #pragma omp for nowait schedule(dynamic)
+    for (size_t i = 0; i < vehicles_.size(); ++i) {
+      const auto& v = vehicles_[i];
+      int load = capacity_;
+      for (const auto &n : v.nodes_) {
+        load -= nodes_[n].demand_;
+        local_check_nodes[n] = true;  // Atualiza o vetor local
+        if (load < 0) {
+          local_valid = false;  // Marca como inválido se a capacidade for excedida
+        }
+      }
+    }
+
+    // Atualiza a solução global de forma crítica
+    #pragma omp critical
+    {
+      if (!local_valid) {
+        valid = false;
+      }
+      for (size_t j = 0; j < nodes_.size(); ++j) {
+        check_nodes[j] = check_nodes[j] || local_check_nodes[j];
+      }
+    }
+  }
+
+  // Verifica se todos os nós foram visitados e se a solução ainda é válida
+  return valid && std::all_of(std::begin(check_nodes), std::end(check_nodes), [](const bool b) { return b; });
+}
+
+bool Solution::CheckSolutionValidSequential() const {
   // double cost = 0;
   std::vector<bool> check_nodes(nodes_.size(), false);
   check_nodes[0] = true;
@@ -128,6 +179,7 @@ bool Solution::CheckSolutionValid() const {
   return std::all_of(std::begin(check_nodes), std::end(check_nodes),
                      [](const bool b) { return b; });
 }
+
 
 Problem::Problem(const int noc, const int demand_range, const int nov,
                  const int capacity, const int grid_range,

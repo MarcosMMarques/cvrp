@@ -72,6 +72,7 @@ struct Vehicle {
    * @details Calculates cost of the route nd updates the cost variable
    */
   void CalculateCost(const std::vector<std::vector<double>> &distanceMatrix);
+  void CalculateCostSequential(const std::vector<std::vector<double>> &distanceMatrix);
 };
 
 /**
@@ -190,6 +191,7 @@ class Solution {
    * the routes exceed the capacity of the respective vehicles
    */
   bool CheckSolutionValid() const;
+  bool CheckSolutionValidSequential() const;
 
   /**
    * @brief Virtual function overloaded by solution structes to solve the given
