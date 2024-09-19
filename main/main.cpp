@@ -67,7 +67,7 @@ int main() {
   constexpr int grid_range = 12500;
   Problem p(noc, demand_range, nov, capacity, grid_range, "uniform");
 
-    std::string filename = "./../input_large.txt";
+    std::string filename = "./../input_large_3.txt";
     std::ifstream file(filename);
     std::string line;
     int v_capacity = 0;
@@ -147,6 +147,7 @@ int main() {
     LocalSearchInterIntraSolution vrp_lsii(nodes, vehicles, distanceMatrix);
     LocalSearchInterIntraSolution vrp_lsii2(nodes, vehicles, distanceMatrix);
     // LocalSearchInterIntraSolution vrp_lsii2(p);
+
     auto start = std::chrono::high_resolution_clock::now();
     vrp_lsii.Solve();
     auto end = std::chrono::high_resolution_clock::now();
